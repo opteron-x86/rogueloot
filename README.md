@@ -6,7 +6,7 @@ cd vcpkg
 ./bootstrap-vcpkg.bat
 ./vcpkg integrate install
 
-vcpkg x-update-registry --add https://raw.githubusercontent.com/Ryan-rsm-McKenzie/CommonLibSSE/main/ports/vcpkg-registry.json
+./vcpkg install commonlibsse-ng:x64-windows-static-md --overlay-ports=https://github.com/CharmedBaryon/CommonLibSSE-NG-vcpkg
 
 # Install CommonLibSSE-NG
 vcpkg install commonlibsse-ng:x64-windows-static-md

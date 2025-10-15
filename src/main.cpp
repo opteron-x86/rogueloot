@@ -11,7 +11,7 @@ public:
 
     void Register() {
         RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink(this);
-        SKSE::log::info("LootDrop registered for death events");
+        logger::info("LootDrop registered");
     }
 
     RE::BSEventNotifyControl ProcessEvent(const RE::TESDeathEvent* a_event, RE::BSTEventSource<RE::TESDeathEvent>*) override {
@@ -33,24 +33,18 @@ private:
     std::uniform_real_distribution<> dis{0.0, 1.0};
 
     void ProcessActorInventory(RE::Actor* actor) {
-        auto container = actor->As<RE::TESContainer>();
-        if (!container) return;
-
-        std::vector<RE::TESBoundObject*> itemsToRemove;
+        auto inventory = actor->GetInventory();
         
-        container->ForEachContainerObject([&](RE::TESBoundObject* obj) {
-            if (!obj->IsGold() && !obj->HasKeyword(0x0A0E5D)) {  // 0x0A0E5D = VendorNoSale (quest items)
-                float dropChance = GetDropChance(obj);
+        for (const auto& [item, data] : inventory) {
+            auto& [count, entry] = data;
+            if (!item || count <= 0) continue;
+            
+            if (!item->IsGold() && !item->IsQuestObject()) {
+                float dropChance = GetDropChance(item);
                 if (dis(gen) > dropChance) {
-                    itemsToRemove.push_back(obj);
+                    actor->RemoveItem(item, count, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
                 }
             }
-            return RE::BSContainer::ForEachResult::kContinue;
-        });
-
-        // Remove items that didn't pass the drop check
-        for (auto* item : itemsToRemove) {
-            actor->RemoveItem(item, 99999, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
         }
     }
 
@@ -71,9 +65,6 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg) {
 
 SKSEPluginLoad(const SKSE::LoadInterface* a_skse) {
     SKSE::Init(a_skse);
-    SKSE::log::info("LootDrop loading...");
-    
     SKSE::GetMessagingInterface()->RegisterListener(MessageHandler);
-    
     return true;
 }
